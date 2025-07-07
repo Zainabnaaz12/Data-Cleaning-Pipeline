@@ -1,0 +1,39 @@
+<nav class="navbar navbar-expand-lg px-4" style="background: linear-gradient(90deg, #0d1117, #1f2b38); border-bottom: 1px solid #2c3e50;">
+  <a class="navbar-brand fw-bold text-info" href="{{ url_for('home') }}" style="font-size: 1.4rem;">🧼 DataCleaner</a>
+  <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav ms-auto gap-2">
+
+      <li class="nav-item">
+        <a class="nav-link text-light" href="{{ url_for('upload_file') }}">📁 Upload</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link text-light" href="{{ url_for('preview') }}">🔎 Preview</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link text-light" href="{{ url_for('show_logs') }}">🧾 Logs</a>
+      </li>
+
+      {% if session.username %}
+      <li class="nav-item">
+        <a class="nav-link text-info" href="#">👤 {{ session.username }}</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link text-danger" href="{{ url_for('logout') }}">🚪 Logout</a>
+      </li>
+      {% else %}
+      <li class="nav-item">
+        <a class="nav-link text-warning" href="{{ url_for('login') }}">🔐 Login</a>
+      </li>
+      {% endif %}
+
+    </ul>
+  </div>
+</nav>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Data Preview & Cleaning</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    .table th.sortable-header {
+      position: relative;
+      cursor: pointer;
+    }
+    .table th.sortable-header::after {
+      content: "⇅";
+      font-size: 0.75rem;
+      margin-left: 5px;
+      color: #aaa;
+    }
+    .sticky-top {
+      z-index: 1020;
+      background-color: #121212;
+    }
+    .stylish-table td, .stylish-table th {
+      vertical-align: middle;
+      padding: 10px;
+      font-size: 0.95rem;
+    }
+    .stylish-table ul {
+      padding-left: 16px;
+    }
+    .scrollable-charts {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body class="dark-theme fade-in">
+  <div id="particles-js" style="position:fixed;width:100%;height:100%;z-index:-1;"></div>
+  <div id="loader"><div class="dot-loader"><span></span><span></span><span></span></div></div>
+  <button id="theme-toggle" title="Toggle Theme">🌓</button>
+  {% include 'navbar.html' %}
+
+  <!-- Stepper Navigation -->
+  <div class="stepper-container sticky-top py-2">
+    {% for step_number, step_name in [(1, 'Upload'), (2, 'Preview'), (3, 'Clean'), (4, 'Download')] %}
+      <div class="step-wrapper" onclick="scrollToSection('{{ step_name.lower() }}-section')">
+        <div class="step {% if step >= step_number %}active{% endif %}">{{ '✔' if step > step_number else step_number }}</div>
+        <div class="step-label">{{ step_name }}</div>
+      </div>
+      {% if not loop.last %}<div class="line"></div>{% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="container py-4" id="main-content">
+    <h1 class="text-center mb-4">🧠 Data Cleaning Dashboard</h1>
+
+    <!-- Undo Button -->
+    <form action="{{ url_for('undo') }}" method="post" class="text-end mb-4">
+      <button class="btn undo-btn" type="submit" title="Undo your last cleaning step">⏪ Undo Last Action</button>
+    </form>
+
+    <!-- Dataset Preview -->
+    <div class="card dark mb-4" id="preview-section">
+      <h4 data-bs-toggle="tooltip" title="Shows first 10 rows of your uploaded dataset.">📄 Data Preview</h4>
+      <div class="table-responsive">
+        {{ tables[0] | replace('<table', '<table class=\"table stylish-table sortable\"') | safe }}
+      </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="card dark mb-4">
+      <h4 data-bs-toggle="tooltip" title="Descriptive summary of all columns.">📊 Summary Statistics</h4>
+      <div class="table-responsive">
+        {{ profile.desc_stats | replace('<table', '<table class=\"table stylish-table sortable\"') | safe }}
+      </div>
+    </div>
+
+    <!-- Compact Summary -->
+    <div class="card dark mb-4">
+      <h4 data-bs-toggle="tooltip" title="Quick overview of dataset structure and quality.">🧬 Dataset Profile</h4>
+      <div class="row text-center">
+        <div class="col-md-3 mb-3"><span class="h5">🧱 {{ summary_panel.total_rows }}</span><br><small>Total Rows</small></div>
+        <div class="col-md-3 mb-3"><span class="h5">📐 {{ summary_panel.total_cols }}</span><br><small>Total Columns</small></div>
+        <div class="col-md-3 mb-3"><span class="h5">🔢 {{ summary_panel.num_numerical }}</span><br><small>Numerical</small></div>
+        <div class="col-md-3 mb-3"><span class="h5">🗂️ {{ summary_panel.num_categorical }}</span><br><small>Categorical</small></div>
+        <div class="col-md-3 mb-3"><span class="h5">📝 {{ summary_panel.num_text }}</span><br><small>Text Columns</small></div>
+        <div class="col-md-3 mb-3">
+          <span class="h5">🚫 {{ summary_panel.missing_pct }}%</span><br><small>Missing Data</small>
+          {% if summary_panel.missing_pct > 20 %}
+            <span class="badge bg-danger ms-1">⚠️ High</span>
+          {% elif summary_panel.missing_pct > 5 %}
+            <span class="badge bg-warning ms-1">⚠️ Moderate</span>
+          {% endif %}
+        </div>
+        <div class="col-md-3 mb-3">
+          <span class="h5">📄📄 {{ summary_panel.duplicates }}</span><br><small>Duplicate Rows</small>
+          {% if summary_panel.duplicates > 0 %}
+            <span class="badge bg-warning ms-1">⚠️ Present</span>
+          {% endif %}
+        </div>
+        <div class="col-md-3 mb-3"><span class="h5">💾 {{ summary_panel.memory_usage }} MB</span><br><small>Memory Used</small></div>
+      </div>
+    </div> 
+    <!-- 🧪 Validation Rules Section -->
+<div class="card dark mb-4">
+  <h4>🧪 Data Validation Rules</h4>
+  <form action="{{ url_for('add_validation_rule') }}" method="post" class="row g-3">
+    <div class="col-md-3">
+      <label>Column</label>
+      <select name="rule_column" class="form-select" required>
+        {% for col in df.columns %}
+          <option value="{{ col }}">{{ col }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label>Condition</label>
+      <select name="rule_condition" class="form-select" required>
+        <option value=">">greater than</option>
+        <option value="<">less than</option>
+        <option value="==">equal to</option>
+        <option value="!=">not equal to</option>
+        <option value="between">between</option>
+        <option value="contains">contains</option>
+        <option value="not_contains">does not contain</option>
+      </select>
+    </div>
+
+    <div class="col-md-4">
+      <label>Value(s)</label>
+      <input name="rule_value" type="text" class="form-control" placeholder="e.g. 10 or 10,50 or word" required>
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-success w-100">➕ Add Rule</button>
+    </div>
+  </form>
+
+  {% if session.get('validation_rules') %}
+    <hr>
+    <h5>📝 Current Rules:</h5>
+    <ul class="text-light">
+      {% for rule in session.get('validation_rules') %}
+        <li>{{ rule.column }} {{ rule.condition }} {{ rule.value }}</li>
+      {% endfor %}
+    </ul>
+    <form action="{{ url_for('apply_validation') }}" method="post" class="text-end d-inline-block">
+      <button class="btn btn-warning mt-2">🔍 Apply Rules & Show Violations</button>
+    </form>
+
+    <form action="{{ url_for('clear_validation_rules') }}" method="post" class="d-inline-block ms-2">
+      <button class="btn btn-danger mt-2">🗑️ Clear All Rules</button>
+    </form>
+  {% endif %}
+</div> <!-- ❗ End of Validation Section Card -->
+
+<!-- 🚨 Violating Rows Preview -->
+{% if violating_rows %}
+  <div class="card dark mb-4">
+    <h4>🚨 Rows Violating Rules</h4>
+    <div class="table-responsive">
+      {{ violating_rows.to_html(classes='table table-bordered table-sm table-striped') | safe }}
+    </div>
+    <form action="{{ url_for('remove_invalid_rows') }}" method="post" class="text-end">
+      <button class="btn btn-danger mt-2">🧹 Remove Violating Rows</button>
+    </form>
+  </div>
+{% endif %}
+
+
+
+    <!-- Smart Visualizer Panel -->
+    <div class="card dark mb-4" id="eda-section">
+      <h4 data-bs-toggle="tooltip" title="Get intelligent chart suggestions based on selected features and intent.">🧠 Smart Visualizer</h4>
+      <form action="{{ url_for('smart_visualizer') }}" method="post" class="row g-3">
+        <div class="col-md-4">
+          <label>Chart Type (Optional)</label>
+          <select name="manual_chart_type" class="form-select">
+            <option value="">Auto</option>
+            <option value="histogram">Histogram</option>
+            <option value="box">Box Plot</option>
+            <option value="violin">Violin Plot</option>
+            <option value="scatter">Scatter Plot</option>
+            <option value="heatmap">Heatmap</option>
+            <option value="pairplot">Pair Plot</option>
+            <option value="bar">Bar Chart</option>
+            <option value="count">Count Plot</option>
+            <option value="wordcloud">Word Cloud</option>
+            <option value="topwords">Top Words</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label>Select Features</label>
+          <select name="features" class="form-select" multiple required>
+            <optgroup label="Numeric">
+              {% for col in numeric_columns %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+            </optgroup>
+            <optgroup label="Text">
+              {% for col in text_columns %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+            </optgroup>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label>Group By (Optional)</label>
+          <select name="group_col" class="form-select">
+            <option value="">None</option>
+            {% for col in groupable_columns %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label>Chart Theme</label>
+          <select name="smart_theme" class="form-select">
+            <option value="plotly_dark">Plotly Dark</option>
+            <option value="plotly_white">Plotly White</option>
+            <option value="ggplot2">ggplot2</option>
+            <option value="seaborn">Seaborn</option>
+            <option value="presentation">Presentation</option>
+            <option value="xgridoff">XGrid Off</option>
+            <option value="ygridoff">YGrid Off</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label>Visualization Intent</label>
+          <select name="viz_focus" class="form-select">
+            <option value="auto">Auto (Recommended)</option>
+            <option value="distribution">Distribution</option>
+            <option value="comparison">Comparison</option>
+            <option value="correlation">Correlation</option>
+            <option value="text">Text Analysis</option>
+          </select>
+        </div>
+        <div class="col-12 text-end">
+          <button class="btn btn-primary" name="action" value="manual">➕ Add Chart</button>
+          <button class="btn btn-info" name="action" value="auto">✨ Recommend Charts</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Smart Chart Results -->
+    {% if smart_charts %}
+    <div class="card dark mb-4 scrollable-charts">
+      <h4>📊 Smart Chart Recommendations</h4>
+      {% for chart in smart_charts %}
+        <div class="mb-4">
+          <h5>{{ chart.title }}</h5>
+          <p class="text-light">{{ chart.reason }}</p>
+          {{ chart.html | safe }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Cleaning Suggestions -->
+    <div class="card dark mb-4" id="cleaning-section">
+      <h4>🧼 Cleaning Suggestions</h4>
+      <div class="table-responsive">
+        <table class="table stylish-table">
+          <thead><tr><th>Column</th><th>Type</th><th>Issues</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for cs in cleaning_suggestions %}
+            <tr>
+              <td>
+                <strong>{{ cs.column }}</strong>
+                {% if cs.column in cleaned_columns %}
+                  <span class="badge bg-success ms-1">✅ Cleaned</span>
+                {% endif %}
+                <button class="btn btn-sm btn-outline-info ms-2" onclick="showPreviewModal('{{ cs.column }}')" title="Before/After Preview">🔍</button>
+              </td>
+              <td>{{ cs.type }}</td>
+              <td>
+                {% if cs.suggestions %}
+                  <ul class="mb-0">{% for issue in cs.suggestions %}<li>{{ issue }}</li>{% endfor %}</ul>
+                {% else %}
+                  <span class="text-muted">No issues</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if cs.column in cleaned_columns %}
+                <div class="d-flex flex-column">
+                  <div class="d-flex align-items-center mb-2">
+                    <button class="btn btn-secondary btn-sm me-2" disabled>✅ Done</button>
+                    <form action="{{ url_for('revert_column', column=cs.column) }}" method="post" class="d-inline">
+                      <button class="btn btn-outline-warning btn-sm" title="Revert column">♻ Revert</button>
+                    </form>
+                  </div>
+                </div>
+                {% else %}
+                <form action="{{ url_for('apply_cleaning') }}" method="post">
+                  <input type="hidden" name="column" value="{{ cs.column }}">
+                  <select name="method" class="form-select mb-2">
+                    <option value="drop_na">Drop NA</option>
+                    <option value="fill_mean">Fill Mean</option>
+                    <option value="fill_median">Fill Median</option>
+                    <option value="fill_mode">Fill Mode</option>
+                    <option value="remove_outliers">Remove Outliers</option>
+                    <option value="convert_dtype">Convert Dtype</option>
+                  </select>
+                  <button class="btn btn-success btn-sm">Apply</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <form action="{{ url_for('auto_clean') }}" method="post" class="text-end mt-2">
+        <button class="btn btn-warning">⚡ Auto Clean Entire Dataset</button>
+      </form>
+    </div>
+    <!-- View Cleaning Code Button -->
+       <div class="text-end mb-4">
+         <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#codeModal">
+           🧾 View Cleaning Code
+          </button>
+       </div>
+
+
+    <!-- Download Options -->
+    <div class="card dark mb-4" id="download-section">
+      <h4>📥 Download</h4>
+      <a href="{{ url_for('download_cleaned', next=url_for('preview', downloaded=1)) }}" class="btn btn-info mb-2">Download Cleaned Dataset</a>
+      <a href="{{ url_for('export_pipeline') }}" class="btn btn-secondary mb-2">Export Pipeline</a>
+      <form action="{{ url_for('import_pipeline') }}" method="post" enctype="multipart/form-data" class="mb-2">
+        <input type="file" name="pipeline_file" class="form-control mb-2" required>
+        <button class="btn btn-warning btn-sm">Upload & Apply</button>
+      </form>
+      <a href="{{ url_for('download_report') }}" class="btn btn-danger mb-2">Download Cleaning Report</a>
+    </div>
+
+    <!-- Cleaning History -->
+    <div class="card dark mb-4">
+      <h4>🧾 Cleaning History</h4>
+      <ul>{% for entry in cleaning_report %}<li><strong>{{ entry.issue }}</strong>: {{ entry.action }}</li>{% endfor %}</ul>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="{{ url_for('home') }}" class="btn btn-outline-light">← Back to Home</a>
+    </div>
+  </div> <!-- End Container -->
+
+  <!-- Preview Modal -->
+  <div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content dark">
+        <div class="modal-header">
+          <h5 class="modal-title">Before/After Preview: <span id="previewColumn"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-striped table-bordered">
+            <thead><tr><th>Before</th><th>After</th></tr></thead>
+            <tbody id="previewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Cleaning Code Modal -->
+<div class="modal fade" id="codeModal" tabindex="-1" aria-labelledby="codeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content dark">
+      <div class="modal-header">
+        <h5 class="modal-title" id="codeModalLabel">🧾 Cleaning Pipeline Code</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if cleaning_code %}
+          <pre style="background-color:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:5px;overflow-x:auto;">
+<code>{{ cleaning_code }}</code></pre>
+        {% else %}
+          <p class="text-muted">No cleaning steps applied yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Scripts -->
+  <script>
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showPreviewModal(column) {
+      fetch(`/column_preview/${column}`).then(response => response.json()).then(data => {
+        if (data.error) return alert("No preview data found for this column.");
+        const tbody = document.getElementById('previewTableBody');
+        document.getElementById('previewColumn').textContent = column;
+        tbody.innerHTML = '';
+        for (let i = 0; i < Math.max(data.before.length, data.after.length); i++) {
+          const b = data.before[i] || '';
+          const a = data.after[i] || '';
+          tbody.innerHTML += `<tr><td>${b}</td><td>${a}</td></tr>`;
+        }
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltips.forEach(el => new bootstrap.Tooltip(el));
+      document.getElementById("loader").style.display = "none";
+    });
+  </script>
+</body>
+</html>

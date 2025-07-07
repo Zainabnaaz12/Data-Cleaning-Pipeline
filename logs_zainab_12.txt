@@ -1,0 +1,25 @@
+[2025-06-26 14:20:13.648726] Auto cleaning applied
+[2025-06-26 14:20:30.850804] Applied remove_outliers on SibSp
+[2025-06-26 14:20:53.693370] Applied remove_outliers on Pclass
+[2025-06-26 14:21:14.829504] Applied advanced text cleaning on Name with steps ['lemmatize']
+[2025-06-26 14:22:39.106880] Auto cleaning applied
+[2025-06-26 14:36:24.515559] Auto cleaning applied
+[2025-06-26 14:41:32.953001] Auto cleaning applied
+[2025-06-27 14:44:58.051024] Auto cleaning applied
+[2025-06-27 22:15:39.549790] Auto cleaning applied
+[2025-06-28 13:44:37.500267] Auto cleaning applied
+[2025-06-30 21:05:50.852695] Applied remove_outliers on Age
+[2025-06-30 21:06:24.736621] Applied remove_outliers on Parch
+[2025-06-30 21:06:37.479727] Applied remove_outliers on SibSp
+[2025-06-30 21:06:53.554669] Applied drop_na on Cabin
+[2025-06-30 21:12:35.192188] Auto cleaning applied
+[2025-06-30 21:15:56.188181] Auto cleaning applied
+[2025-06-30 21:16:20.361071] Applied remove_outliers on SibSp
+[2025-07-01 12:11:32.516727] Auto cleaning applied
+[2025-07-02 12:09:00.224620] Applied drop_na on Age
+[2025-07-02 12:09:18.246051] Applied remove_outliers on SibSp
+[2025-07-02 12:09:28.007184] Auto cleaning applied
+[2025-07-03 15:39:07.922552] Auto cleaning applied
+[2025-07-05 14:38:37.366083] Auto cleaning applied
+[2025-07-05 20:23:39.879734] Auto cleaning applied
+[2025-07-05 21:12:03.095737] Auto cleaning applied
