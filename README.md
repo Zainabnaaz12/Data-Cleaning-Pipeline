@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🧼 Data Cleaning Auto Pipeline (Flask Web App)
 
 A clean, interactive web application that helps you upload any CSV file, detect and fix common data quality issues, and explore EDA charts — all from your browser.
@@ -32,13 +32,6 @@ A clean, interactive web application that helps you upload any CSV file, detect 
 
 ---
 
-## 🌐 Live App
-
-🔗 Hosted on Render:  
-https://data-cleaning-pipeline.onrender.com
-
----
-
 ## 🛠 Tech Stack
 
 - Python (Flask)
@@ -50,8 +43,6 @@ https://data-cleaning-pipeline.onrender.com
 ---
 
 ## ⚙️ How to Run Locally
-
-```bash
 # Clone the repository
 git clone https://github.com/your-username/data-cleaning-pipeline.git
 cd data-cleaning-pipeline
@@ -62,6 +53,4 @@ pip install -r requirements.txt
 # Run the app
 python app.py
 =======
-# Data-Cleaning-Pipeline
-An intelligent web application for exploratory data analysis and smart data cleaning. Upload any dataset, explore insights with AI-powered chart recommendations, apply cleaning techniques interactively, define validation rules, and export a reusable cleaning pipeline – all in one beautiful dashboard.
->>>>>>> 2e87edf6225d46e542b26d4a8b3ef9d0eb784a86
+
